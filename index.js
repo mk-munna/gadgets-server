@@ -7,7 +7,7 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { MongoClient, ServerApiVersion } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.yfvcqxe.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 const client = new MongoClient(uri, {
@@ -20,12 +20,13 @@ const client = new MongoClient(uri, {
 
 async function run() {
     try {
-        await client.connect();
+        // await client.connect();
         const gadgetsCollection = client.db('GadgetsDB').collection('Gadgets');
 
-        // Load data with pagination, searching, categorization, and sorting
+        // Load data 
         app.get('/gadgets', async (req, res) => {
-            const { page = 1, limit = 10, search = '', category = '', brand = '', priceMin, priceMax, sort } = req.query;
+            const { page = 1, limit = 12, search = '', category = '', brand = '', priceMin, priceMax, sort } = req.query;
+            console.log(sort);
 
             const query = {
                 ...(search && { name: { $regex: search, $options: 'i' } }),
@@ -36,9 +37,9 @@ async function run() {
 
             const options = {
                 sort: {
-                    ...(sort === 'priceLowHigh' && { price: 1 }),
-                    ...(sort === 'priceHighLow' && { price: -1 }),
-                    ...(sort === 'dateNew' && { date: -1 })
+                    ...(sort === 'priceLowToHigh' && { price: 1 }),
+                    ...(sort === 'priceHighToLow' && { price: -1 }),
+                    ...(sort === 'dateNewest' && { date: -1 })
                 },
                 skip: (parseInt(page) - 1) * parseInt(limit),
                 limit: parseInt(limit)
@@ -47,7 +48,7 @@ async function run() {
             const gadgets = await gadgetsCollection.find(query, options).toArray();
             const totalCount = await gadgetsCollection.countDocuments(query);
             const totalPages = Math.ceil(totalCount / parseInt(limit));
-
+            console.log(totalPages, totalCount);
             res.send({
                 gadgets,
                 totalPages,
